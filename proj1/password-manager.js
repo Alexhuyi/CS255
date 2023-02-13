@@ -262,12 +262,29 @@ class Keychain {
       this.secrets.HMACkey,
       name
     );
+    let hkey = await subtle.importKey(
+      "raw",
+      key,
+      {name: "HMAC", hash: "SHA-256"},
+      false,
+      ["verify"]
+    );
     key = bufferToUntypedArray(key);
     let plaintext = null;
     if(this.secrets.kvs.hasOwnProperty(key)){
       let value = this.secrets.kvs[key];
       let iv = byteArrayToString(untypedToTypedArray(value[0]));
       let ciphertext = untypedToTypedArray(value[1]);
+      let tag = untypedToTypedArray(value[2]);
+      let verification = await subtle.verify(
+        "HMAC",
+        hkey,
+        tag,
+        ciphertext
+      );
+      if(verification === false){
+        throw "Tampering is detected!";
+      }
       plaintext = await subtle.decrypt(
         {name: "AES-GCM", iv: iv},
         this.secrets.AESGCMkey,
@@ -300,6 +317,14 @@ class Keychain {
       this.secrets.HMACkey,
       name
     );
+
+    let hkey = await subtle.importKey(
+      "raw",
+      key,
+      {name: "HMAC", hash: "SHA-256"},
+      false,
+      ["sign"]
+    );
     key = bufferToUntypedArray(key);//for dump on disk
 
     //encrypt the value
@@ -309,9 +334,13 @@ class Keychain {
       this.secrets.AESGCMkey,
       untypedToTypedArray(rawToPaddedArray(stringToByteArray(value), Keychain.Padded_Password_length))
     );//byte padding "100000..." to 80 byteus
-
+    let tag = await subtle.sign(
+      "HMAC",
+      hkey,
+      ciphertext
+    );
     //update this entry in KVS
-    this.secrets.kvs[key] = [bufferToUntypedArray(iv), bufferToUntypedArray(ciphertext)];//use an untyped array to serialize entries in the KVS
+    this.secrets.kvs[key] = [bufferToUntypedArray(iv), bufferToUntypedArray(ciphertext), bufferToUntypedArray(tag)];//use an untyped array to serialize entries in the KVS
   };
 
   /**
