@@ -94,6 +94,7 @@ describe('Messenger', function () {
       const message = 'Hello, Bob'
       const ct = await alice.sendMessage('bob', message)
       const result = await bob.receiveMessage('alice', ct)
+      // console('result: ', result, 'message: ', message)
       expect(result).to.equal(message)
     })
 
@@ -149,13 +150,20 @@ describe('Messenger', function () {
       let ct = await alice.sendMessage('bob', message)
       let result = await bob.receiveMessage('alice', ct)
       expect(result).to.equal(message)
+      console.log('1',result, message)
+      console.log(bob.conns['alice'].DHr === alice.conns['bob'].DHs.pub)
+      console.log(alice.conns['bob'].RK === bob.conns['alice'].RK)
+      console.log(alice.conns['bob'].CKs === bob.conns['alice'].CKr)
       message = 'Hello, Alice'
       ct = await bob.sendMessage('alice', message)
+      console.log('2 send');
       result = await alice.receiveMessage('bob', ct)
+      console.log('2',result, message)
       expect(result).to.equal(message)
       message = 'Meet for lunch?'
       ct = await bob.sendMessage('alice', message)
       result = await alice.receiveMessage('bob', ct)
+      console.log('3',result, message)
       expect(result).to.equal(message)
     })
 
